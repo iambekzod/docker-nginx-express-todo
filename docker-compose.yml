@@ -1,0 +1,88 @@
+version: '2.1'
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: todo-mongodb
+    restart: always
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - ./data/db:/data/db
+    ports:
+        - 27017:27017
+    command: mongod --noauth --smallfiles
+    healthcheck:
+      test: echo 'db.stats().ok' | mongo localhost:27017/todo --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - app-network
+  nginx:
+    image: todo-nginx
+    container_name: todo-nginx
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
+    links:
+      - node1:node1
+      - node2:node2
+    depends_on:
+      - node1
+      - node2
+    volumes:
+      - ./todo/static/:/usr/share/nginx/html/
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - app-network
+  node1:
+    image: todo-node1
+    container_name: todo-node1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure
+    working_dir: /usr/src/app
+    links:
+      - mongo
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "3000"
+    environment:
+      - INSTANCE=node1
+    networks:
+      - app-network
+
+  node2:
+    image: todo-node2
+    container_name: todo-node2
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "3000"
+    links:
+      - mongo
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - INSTANCE=node2
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
