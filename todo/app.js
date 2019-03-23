@@ -2,9 +2,7 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const fs = require('fs');
 
-// app.use(express.static("/static"));
 app.use(bodyParser.json());
 
 app.use(function(req, res, next) {
@@ -78,17 +76,10 @@ app.delete("/api/items/:id/", function(req, res, next) {
   });
 });
 
-const https = require("https");
+const http = require("http");
 const PORT = 3000;
 
-var privateKey = fs.readFileSync('./todo/server.key');
-var certificate = fs.readFileSync('./todo/server.crt');
-var config = {
-        key: privateKey,
-        cert: certificate
-};
-
-https.createServer(config, app).listen(PORT, function (err) {
+http.createServer(app).listen(PORT, function (err) {
   if (err) console.log(err);
-  else console.log("HTTPS server on https://localhost:%s", PORT);
+  else console.log("HTTP server on http://localhost:%s", PORT);
 });
